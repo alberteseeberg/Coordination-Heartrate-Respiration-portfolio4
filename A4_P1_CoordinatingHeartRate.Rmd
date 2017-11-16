@@ -40,7 +40,177 @@ N.B. to give you a bit more data I included data from last year (Study1) and fro
 - Does this tell you more than just eyeballing the plots?
 
 ```{r}
+#Setting working directory
+setwd("~/Desktop/3. Semester/Experimental methods 3/Portfolio 4")
 
+#Loading data
+PairSync=read.csv("CleanData/Study2_G5_T1_Synchronous.csv")
+PairTurn=read.csv("CleanData/Study2_G5_T2_TurnTaking.csv")
+PairCon=read.csv("CleanData/Study2_G5_T3_Conversation.csv")
+
+#Loding relevant packages
+library(ggplot2)
+library(groupdata2)
+library(dplyr)
+library(gridExtra)
+library(crqa)
+library(stringr)
+
+#Creating plots for respiration
+plot1=ggplot(PairCon, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
+
+plot2=ggplot(PairTurn, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
+
+plot3=ggplot(PairSync, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
+
+#Creating plots for heart rate
+plot4=ggplot(PairCon, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
+
+plot5=ggplot(PairTurn, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
+
+plot6=ggplot(PairSync, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
+
+#Downsampling
+PairCon = PairCon %>%
+    group(n = 100, method = 'greedy') %>%
+    dplyr::summarise(
+       time = mean(time,na.rm=T),
+       HR1 = mean(HR1,na.rm=T),
+       HR2 = mean(HR2,na.rm=T),
+       Resp1 = mean(Resp1,na.rm=T),
+       Resp2 = mean(Resp2,na.rm=T))
+
+PairSync = PairSync %>%
+    group(n = 100, method = 'greedy') %>%
+    dplyr::summarise(
+       time = mean(time,na.rm=T),
+       HR1 = mean(HR1,na.rm=T),
+       HR2 = mean(HR2,na.rm=T),
+       Resp1 = mean(Resp1,na.rm=T),
+       Resp2 = mean(Resp2,na.rm=T))
+
+PairTurn = PairTurn %>%
+    group(n = 100, method = 'greedy') %>%
+    dplyr::summarise(
+       time = mean(time,na.rm=T),
+       HR1 = mean(HR1,na.rm=T),
+       HR2 = mean(HR2,na.rm=T),
+       Resp1 = mean(Resp1,na.rm=T),
+       Resp2 = mean(Resp2,na.rm=T))
+
+#Removing outliers
+removeOuts = function(ts,threshold){
+   ts[ts > (mean(ts,na.rm=T) +  
+           (threshold*sd(ts,na.rm=T))) | 
+        ts < (mean(ts,na.rm=T) -
+           (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)  
+   return(ts)}
+threshold=1.5
+PairCon$HR1=PairCon$HR1=removeOuts(PairCon$HR1,threshold)
+PairSync$HR1=PairSync$HR1=removeOuts(PairSync$HR1,threshold)
+PairTurn$HR1=PairTurn$HR1=removeOuts(PairTurn$HR1,threshold)
+PairCon$HR2=PairCon$HR2=removeOuts(PairCon$HR2,threshold)
+PairSync$HR2=PairSync$HR2=removeOuts(PairSync$HR2,threshold)
+PairTurn$HR2=PairTurn$HR2=removeOuts(PairTurn$HR2,threshold)
+
+PairCon$Resp1=PairCon$Resp1=removeOuts(PairCon$Resp1,threshold)
+PairSync$Resp1=PairSync$Resp1=removeOuts(PairSync$Resp1,threshold)
+PairTurn$Resp1=PairTurn$Resp1=removeOuts(PairTurn$Resp1,threshold)
+PairCon$Resp2=PairCon$Resp2=removeOuts(PairCon$Resp2,threshold)
+PairSync$Resp2=PairSync$Resp2=removeOuts(PairSync$Resp2,threshold)
+PairTurn$Resp2=PairTurn$Resp2=removeOuts(PairTurn$Resp2,threshold)
+
+
+#Scaling the signals
+
+PairCon$Resp1S=scale(PairCon$Resp1) 
+PairCon$Resp2S=scale(PairCon$Resp2)  
+PairCon$HR1S=scale(PairCon$HR1)
+PairCon$HR2S=scale(PairCon$HR2)
+
+PairSync$Resp1S=scale(PairSync$Resp1) 
+PairSync$Resp2S=scale(PairSync$Resp2)  
+PairSync$HR1S=scale(PairSync$HR1)
+PairSync$HR2S=scale(PairSync$HR2)
+
+PairTurn$Resp1S=scale(PairTurn$Resp1) 
+PairTurn$Resp2S=scale(PairTurn$Resp2)  
+PairTurn$HR1S=scale(PairTurn$HR1)
+PairTurn$HR2S=scale(PairTurn$HR2)
+
+#Creating new plots
+
+#Creating plots for respiration
+plot7=ggplot(PairCon, aes(x=time, y=Resp1S)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2S), color="firebrick3") + theme(legend.position="none")
+
+plot8=ggplot(PairTurn, aes(x=time, y=Resp1S)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2S), color="firebrick3") + theme(legend.position="none")
+
+plot9=ggplot(PairSync, aes(x=time, y=Resp1S)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2S), color="firebrick3") + theme(legend.position="none")
+
+#Creating plots for heart rate
+plot10=ggplot(PairCon, aes(x=time, y=HR1S)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2S), color="cyan4") + theme(legend.position="none")
+
+plot11=ggplot(PairTurn, aes(x=time, y=HR1S)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2S), color="cyan4") + theme(legend.position="none")
+
+plot12=ggplot(PairSync, aes(x=time, y=HR1S)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2S), color="cyan4") + theme(legend.position="none")
+
+grid.arrange(plot7, plot8, plot9)
+
+grid.arrange(plot10, plot11, plot12)
+
+
+#Making a loop to find optimal parameters
+
+Dimension=NULL
+Radius=NULL
+Delay=NULL
+n=1
+
+files=list(PairCon, PairSync, PairTurn)
+
+ par = list(lgM =  50, steps = seq(1, 6, 1),  radiusspan = 100,
+  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,
+  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,
+  fnnpercent = 10,  typeami = "mindip") 
+
+for (file in files){
+  ans_resp=(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec= 3.5,
+                     max.rec=4.5))
+  
+  
+  Dimension[n]=ans_resp$emddim
+  Radius[n]=ans_resp$radius
+  Delay[n]=ans_resp$delay
+  
+   n=n+1
+}
+
+ParametersResp =data.frame(Dimension, Radius, Delay)
+
+mean(ParametersResp$Dimension)
+#2
+mean(ParametersResp$Radius)
+#0.443
+mean(ParametersResp$Delay)
+#36
+
+#Recurrence quantification analysis
+SyncCrqa=crqa(PairSync$Resp1S, PairSync$Resp2S, delay=36, embed=2,
+               radius=0.443,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+
+#Representing the plot
+RP=SyncCrqa$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white","blue4")
+image(RP, xlab = "", ylab = "", col = cols) 
+
+#Exploring lags of coordination
+Profile=drpdfromts(PairSync$Resp1S, PairSync$Resp2S,datatype = 'continuous',ws=50,radius=0.443)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1) 
+maxlag = Profile$maxlag/1000 
+profile = Profile$profile*100 
+Prof=data.frame(profile) 
+ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[maxlag], colour='red')
 ```
 
 ### Systematically pre-process the data
@@ -48,6 +218,38 @@ N.B. to give you a bit more data I included data from last year (Study1) and fro
 - Run crqa on all the pre-processed time-series and save the output (don't forget to add columns with study, group, condition and trial). Tip: remember to first assess optimal parameters (dimensions, delay, radius) across all timeseries. Tip: it will often fail, just take whatever parameters you get, select optimal across timeseries parameters and run crqa on all timeseries with those. Tip: double check the rr. When I ran the loop, I got very low rr, so I adjusted the radius until the average of rr across all pairs was approx. 4%.
 
 ```{r}
+
+
+#Creating a filelist
+filelist=list.files(path = "CleanData", pattern = ".csv")
+
+preprocessing=function(data) {
+  data = data %>%
+    group(n = 100, method = 'greedy') %>%
+    dplyr::summarise(
+       time = mean(time,na.rm=T),
+       HR1 = mean(HR1,na.rm=T),
+       HR2 = mean(HR2,na.rm=T),
+       Resp1 = mean(Resp1,na.rm=T),
+       Resp2 = mean(Resp2,na.rm=T))
+  
+  data$HR2=data$HR2=removeOuts(data$HR2,threshold)
+  data$HR1=data$HR1=removeOuts(data$HR1,threshold)
+  data$Resp2=data$Resp2=removeOuts(data$Resp2,threshold)
+  data$Resp1=data$Resp1=removeOuts(data$Resp1,threshold)
+  
+  data$Resp1S=scale(data$Resp1) 
+  data$Resp2S=scale(data$Resp2)  
+  data$HR1S=scale(data$HR1)
+  data$HR2S=scale(data$HR2)
+
+}
+#Making a loop
+for (file in filelist){
+  d=read.csv(paste0("CleanData/", file))
+  filename[n] = filelist[n]
+
+}
 
 ```
 
