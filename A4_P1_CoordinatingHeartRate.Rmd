@@ -55,6 +55,7 @@ library(dplyr)
 library(gridExtra)
 library(crqa)
 library(stringr)
+library(readr)
 
 #Creating plots for respiration
 plot1=ggplot(PairCon, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
@@ -143,6 +144,8 @@ PairTurn$HR2S=scale(PairTurn$HR2)
 #Creating plots for respiration
 plot7=ggplot(PairCon, aes(x=time, y=Resp1S)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2S), color="firebrick3") + theme(legend.position="none")
 
+plot7
+
 plot8=ggplot(PairTurn, aes(x=time, y=Resp1S)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2S), color="firebrick3") + theme(legend.position="none")
 
 plot9=ggplot(PairSync, aes(x=time, y=Resp1S)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2S), color="firebrick3") + theme(legend.position="none")
@@ -172,7 +175,8 @@ files=list(PairCon, PairSync, PairTurn)
   radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,
   minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,
   fnnpercent = 10,  typeami = "mindip") 
-
+#RemoveOuts - ruins this
+ 
 for (file in files){
   ans_resp=(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec= 3.5,
                      max.rec=4.5))
@@ -238,19 +242,35 @@ preprocessing=function(data) {
   data$Resp2=data$Resp2=removeOuts(data$Resp2,threshold)
   data$Resp1=data$Resp1=removeOuts(data$Resp1,threshold)
   
-  data$Resp1S=scale(data$Resp1) 
-  data$Resp2S=scale(data$Resp2)  
-  data$HR1S=scale(data$HR1)
-  data$HR2S=scale(data$HR2)
+  data$Resp1=scale(data$Resp1) 
+  data$Resp2=scale(data$Resp2)  
+  data$HR1=scale(data$HR1)
+  data$HR2=scale(data$HR2)
+  
+  return(data)
 
 }
+
+FinalData=data.frame()
+n=1
 #Making a loop
 for (file in filelist){
-  d=read.csv(paste0("CleanData/", file))
-  filename[n] = filelist[n]
+  data=read_csv(paste0("CleanData/", file))
+  Datafile=preprocessing(data)
+  Datafile$filename = filelist[n]
+  FinalData=rbind(FinalData, Datafile)
+  HRplot=ggplot(Datafile, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
+  RESPplot=ggplot(Datafile, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
+  
+  FinalPlot=grid.arrange(HRplot,RESPplot)
+  
+  ggsave(paste0(file, ".png"), plot=FinalPlot, path="Plot")
+  
+  n=n+1
 
 }
 
+ggsave("picture.png", plot=FinalPlot, path="Plot")
 ```
 
 ### Creating controls: shuffled controls
