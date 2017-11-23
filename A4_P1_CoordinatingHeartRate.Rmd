@@ -106,7 +106,7 @@ removeOuts = function(ts,threshold){
         ts < (mean(ts,na.rm=T) -
            (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)  
    return(ts)}
-threshold=1.5
+threshold=2.5
 PairCon$HR1=PairCon$HR1=removeOuts(PairCon$HR1,threshold)
 PairSync$HR1=PairSync$HR1=removeOuts(PairSync$HR1,threshold)
 PairTurn$HR1=PairTurn$HR1=removeOuts(PairTurn$HR1,threshold)
@@ -164,9 +164,12 @@ grid.arrange(plot10, plot11, plot12)
 
 #Making a loop to find optimal parameters
 
-Dimension=NULL
-Radius=NULL
-Delay=NULL
+DimensionResp=NULL
+RadiusResp=NULL
+DelayResp=NULL
+DimensionHR=NULL
+RadiusHR=NULL
+DelayHR=NULL
 n=1
 
 files=list(PairCon, PairSync, PairTurn)
@@ -178,29 +181,56 @@ files=list(PairCon, PairSync, PairTurn)
 #RemoveOuts - ruins this
  
 for (file in files){
-  ans_resp=(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec= 3.5,
-                     max.rec=4.5))
+  ans_resp=try(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec= 2,
+                     max.rec=8))
   
+  if (length(ans_resp) > 1) {
   
-  Dimension[n]=ans_resp$emddim
-  Radius[n]=ans_resp$radius
-  Delay[n]=ans_resp$delay
+  DimensionResp[n]=ans_resp$emddim
+  RadiusResp[n]=ans_resp$radius
+  DelayResp[n]=ans_resp$delay
+  } 
   
+  else {
+    DimensionResp[n] = NA
+    RadiusResp[n] = NA
+    DelayResp[n] = NA
+    
+  }
+  
+  ans_HR=try(optimizeParam(file$HR1S, file$HR2S, par, min.rec= 2,
+                     max.rec=8))
+  
+  if (length(ans_HR) > 1) {
+  
+  DimensionHR[n]=ans_HR$emddim
+  RadiusHR[n]=ans_HR$radius
+  DelayHR[n]=ans_HR$delay
+  } 
+  
+  else {
+    DimensionHR[n] = NA
+    RadiusHR[n] = NA
+    DelayHR[n] = NA
+    
+  }
+  
+   
    n=n+1
 }
 
-ParametersResp =data.frame(Dimension, Radius, Delay)
+ParametersResp =data.frame(DimensionResp, RadiusResp, DelayResp)
+ParameterHR=data.frame(DimensionHR, RadiusHR, DelayHR)
 
-mean(ParametersResp$Dimension)
+mean(ParametersResp$Dimension, na.rm = TRUE)
 #2
-mean(ParametersResp$Radius)
-#0.443
-mean(ParametersResp$Delay)
-#36
+mean(ParametersResp$Delay, na.rm = TRUE)
+#28
+mean(ParametersResp$Radius, na.rm = TRUE)
+#0.3778
 
 #Recurrence quantification analysis
-SyncCrqa=crqa(PairSync$Resp1S, PairSync$Resp2S, delay=36, embed=2,
-               radius=0.443,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+SyncCrqa=crqa(PairSync$Resp1S, PairSync$Resp2S, delay=28, embed=2, radius=0.3778,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 
 #Representing the plot
 RP=SyncCrqa$RP
@@ -208,8 +238,9 @@ RP = matrix(as.numeric(RP), nrow = ncol(RP))
 cols = c("white","blue4")
 image(RP, xlab = "", ylab = "", col = cols) 
 
+
 #Exploring lags of coordination
-Profile=drpdfromts(PairSync$Resp1S, PairSync$Resp2S,datatype = 'continuous',ws=50,radius=0.443)
+Profile=drpdfromts(PairSync$Resp1S, PairSync$Resp2S,datatype = 'continuous',ws=50,radius=0.3778)
 timecourse = round( seq(-5000,5000,100)/1000, digit = 1) 
 maxlag = Profile$maxlag/1000 
 profile = Profile$profile*100 
@@ -258,19 +289,55 @@ for (file in filelist){
   data=read_csv(paste0("CleanData/", file))
   Datafile=preprocessing(data)
   Datafile$filename = filelist[n]
+  
+  ans_resp=try(optimizeParam(Datafile$Resp1, file$Resp2, par, min.rec= 2,
+                     max.rec=8))
+
+  if (length(ans_resp) > 1) {
+
+  Datafile$Dimension_Resp=ans_resp$emddim
+  Datafile$Radius_Resp=ans_resp$radius
+  Datafile$Delay_Resp=ans_resp$delay
+  }
+
+  else {
+    Datafile$Dimension_Resp = NA
+    Datafile$Radius_Resp = NA
+    Datafile$Delay_Resp = NA
+
+  }
+  
+    ans_HR=try(optimizeParam(Datafile$HR1, file$HR2, par, min.rec= 2,
+                     max.rec=8))
+
+  if (length(ans_HR) > 1) {
+
+  Datafile$DimensionHR=ans_HR$emddim
+  Datafile$RadiusHR=ans_HR$radius
+  Datafile$DelayHR=ans_HR$delay
+  }
+
+  else {
+    Datafile$DimensionHR = NA
+    Datafile$RadiusHR = NA
+    Datafile$DelayHR = NA
+
+  }
+
+  #HRplot=ggplot(Datafile, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
+ # RESPplot=ggplot(Datafile, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
+  
+  #FinalPlot=grid.arrange(HRplot,RESPplot)
+  
+  #ggsave(paste0(file, ".png"), plot=FinalPlot, path="Plot")
+  
   FinalData=rbind(FinalData, Datafile)
-  HRplot=ggplot(Datafile, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
-  RESPplot=ggplot(Datafile, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
-  
-  FinalPlot=grid.arrange(HRplot,RESPplot)
-  
-  ggsave(paste0(file, ".png"), plot=FinalPlot, path="Plot")
   
   n=n+1
 
 }
 
-ggsave("picture.png", plot=FinalPlot, path="Plot")
+
 ```
 
 ### Creating controls: shuffled controls
