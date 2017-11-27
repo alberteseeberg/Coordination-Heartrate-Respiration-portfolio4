@@ -56,6 +56,7 @@ library(gridExtra)
 library(crqa)
 library(stringr)
 library(readr)
+library(tidyverse)
 
 #Creating plots for respiration
 plot1=ggplot(PairCon, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
@@ -404,6 +405,35 @@ FinalData=FinalData[-1]
 #                radius=0.596,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 #   HrCRQA= crqa(data$HR1, data$HR2, delay=21, embed=14,
 #                radius=1.274,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+
+
+CRQA = function(data) {
+  RespCRQA = crqa(data$Resp1, data$Resp2, delay = 29, embed = 3,
+                   radius = 0.596, normalize = 0, rescale = 0,
+                   mindiagline = 2, minvertline = 2)
+  RespCRQA$RP = NULL  # Remove large matrix
+  RespCRQA = as_tibble(RespCRQA) %>%
+    mutate(type = 'Resp')
+  
+  HrCRQA = crqa(data$HR1, data$HR2, delay = 21, embed = 14,
+                radius = 1.274, normalize = 0, rescale = 0,
+                mindiagline = 2, minvertline = 2)
+  HrCRQA$RP = NULL  # Remove large matrix
+  HrCRQA = as_tibble(HrCRQA) %>%
+    mutate(type = 'HR')
+  
+  return(rbind(RespCRQA, HrCRQA))
+  
+}
+
+
+crqa_results = FinalData %>%
+  dplyr::select(-c(.groups)) %>%  # Remove .groups (not needed right?)
+  dplyr::group_by(filename) %>%  # Group by each file
+  dplyr::do(CRQA(.)) %>%  # Do CRQA on each group (file)
+  dplyr::ungroup()  # Ungroup (prob. not needed, didn't check) 
+
+
 
 ```
 
