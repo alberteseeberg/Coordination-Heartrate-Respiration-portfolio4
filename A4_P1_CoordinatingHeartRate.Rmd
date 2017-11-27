@@ -178,7 +178,7 @@ files=list(PairCon, PairSync, PairTurn)
   radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,
   minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,
   fnnpercent = 10,  typeami = "mindip") 
-#RemoveOuts - ruins this
+
  
 for (file in files){
   ans_resp=try(optimizeParam(file$Resp1S, file$Resp2S, par, min.rec= 2,
@@ -290,7 +290,9 @@ for (file in filelist){
   Datafile=preprocessing(data)
   Datafile$filename = filelist[n]
   
-  ans_resp=try(optimizeParam(Datafile$Resp1, file$Resp2, par, min.rec= 2,
+  par = list(lgM =  50, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip")
+  
+  ans_resp=try(optimizeParam(Datafile$Resp1, Datafile$Resp2, par, min.rec= 2,
                      max.rec=8))
 
   if (length(ans_resp) > 1) {
@@ -307,7 +309,7 @@ for (file in filelist){
 
   }
   
-    ans_HR=try(optimizeParam(Datafile$HR1, file$HR2, par, min.rec= 2,
+    ans_HR=try(optimizeParam(Datafile$HR1, Datafile$HR2, par, min.rec= 2,
                      max.rec=8))
 
   if (length(ans_HR) > 1) {
@@ -324,12 +326,12 @@ for (file in filelist){
 
   }
 
-  #HRplot=ggplot(Datafile, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
- # RESPplot=ggplot(Datafile, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
+  HRplot=ggplot(Datafile, aes(x=time, y=HR1)) + geom_line(color="coral") + geom_line(aes(x=time, y=HR2), color="cyan4") + theme(legend.position="none")
+  RESPplot=ggplot(Datafile, aes(x=time, y=Resp1)) + geom_line(color="blue4") + geom_line(aes(x=time, y=Resp2), color="firebrick3") + theme(legend.position="none")
   
-  #FinalPlot=grid.arrange(HRplot,RESPplot)
+  FinalPlot=grid.arrange(HRplot,RESPplot)
   
-  #ggsave(paste0(file, ".png"), plot=FinalPlot, path="Plot")
+  ggsave(paste0(file, ".png"), plot=FinalPlot, path="Plot")
   
   FinalData=rbind(FinalData, Datafile)
   
@@ -337,6 +339,71 @@ for (file in filelist){
 
 }
 
+
+# To get column with study number
+
+for (file in 1:nrow(FinalData)){
+  if (grepl("Study1", FinalData$filename[file])){
+    FinalData$Study[file] = 1}
+  if (grepl("Study2", FinalData$filename[file])){
+    FinalData$Study[file] = 2}
+}
+
+# To get group number
+FinalData$Group=regmatches(FinalData$filename, regexpr("[G].*[0-9]", FinalData$filename))
+
+FinalData$Group = gsub("[G, _, T]", "", FinalData$Group)
+
+FinalData$Group=substr(FinalData$Group, 1, nchar(FinalData$Group)-1)
+
+# To get trial number
+FinalData$Trial=regmatches(FinalData$filename, regexpr("[T].*[0-9]", FinalData$filename))
+
+FinalData$Trial = gsub("[T]", "", FinalData$Trial)
+
+# To get condition
+FinalData = FinalData %>% group_by(filename) %>% mutate(Condition = gsub('.{4}$', '', strsplit(filename, "_")[[1]][4]))
+
+# To get mean parameters for CRQA
+mean(FinalData$Dimension_Resp, na.rm = TRUE) # 3.12 = 3
+mean(FinalData$Radius_Resp, na.rm = TRUE) # 0.596
+mean(FinalData$Delay_Resp, na.rm = TRUE) # 28.81 = 29
+
+mean(FinalData$DimensionHR, na.rm = TRUE) # 14.24 = 14 
+mean(FinalData$RadiusHR, na.rm = TRUE) # 1.274
+mean(FinalData$DelayHR, na.rm = TRUE) # 21.39 = 21
+
+
+#Exluding data from Study1_G1_T1_Synchronous.csv, Study1_G1_T2_TurnTaking.csv, Study1_G2_T1_TurnTaking.csv, Study1_G2_T2_Synchronous.csv, after looking at plots for all data
+
+FinalData=FinalData[FinalData$filename != "Study1_G1_T1_Synchronous.csv",]
+FinalData=FinalData[FinalData$filename != "Study1_G1_T2_TurnTaking.csv",]
+FinalData=FinalData[FinalData$filename != "Study1_G2_T1_TurnTaking.csv",]
+FinalData=FinalData[FinalData$filename != "Study1_G2_T2_Synchronous.csv",]
+
+#Saving to a csv file
+write.csv(FinalData, "FinalData.csv")
+
+FinalData=read.csv("FinalData.csv")
+FinalData=FinalData[-1]
+
+# CRQA=function(data) {
+#   data = data %>%
+#     RespCRQA= crqa(data$Resp1, data$Resp2, delay=29, embed=3,
+#                radius=0.596,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+# 
+#     HrCRQA= crqa(data$HR1, data$HR2, delay=21, embed=14,
+#                radius=1.274,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+#   return(data)
+# 
+# }
+# 
+# apply(FinalData,1,CRQA)
+# 
+#   RespCRQA= crqa(data$Resp1, data$Resp2, delay=29, embed=3,
+#                radius=0.596,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+#   HrCRQA= crqa(data$HR1, data$HR2, delay=21, embed=14,
+#                radius=1.274,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
 
 ```
 
