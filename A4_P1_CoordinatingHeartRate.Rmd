@@ -679,27 +679,48 @@ summary(Model12)
 Could include as a baseline maybe. Could substract the effects of doing the same tasks and being in the same surroundings from the actual "personal" coordination. 
 
 ```{r}
-DataHR=subset(FinalData1[FinalData1$type=="HR",])
-DataResp=subset(FinalData1[FinalData1$type=="Resp",])
+# To get column with study number
+for (file in 1:nrow(crqa_results)){
+  if (grepl("Study1", crqa_results$filename[file])){
+    crqa_results$Study[file] = 1}
+  if (grepl("Study2", crqa_results$filename[file])){
+    crqa_results$Study[file] = 2}
+}
 
+# To get group number
+crqa_results$Group=regmatches(crqa_results$filename, regexpr("[G].*[0-9]", crqa_results$filename))
 
-Model13=lmer(RR~Condition +(1|Study), DataHR)
-summary(Model13)
+crqa_results$Group = gsub("[G, _, T]", "", crqa_results$Group)
 
-Model14=lmer(RR~Condition +(1|Study), DataResp)
-summary(Model14)
+crqa_results$Group=substr(crqa_results$Group, 1, nchar(crqa_results$Group)-1)
 
-Model15=lmer(ENTR~Condition +(1|Study), DataHR)
-summary(Model15)
+# To get trial number
+crqa_results$Trial=regmatches(crqa_results$filename, regexpr("[T].*[0-9]", crqa_results$filename))
 
-Model16=lmer(ENTR~Condition +(1|Study), DataResp)
-summary(Model16)
+crqa_results$Trial = gsub("[T]", "", crqa_results$Trial)
 
-Model17=lmer(L~Condition +(1|Study), DataHR)
-summary(Model17)
+# To get condition
+crqa_results$filename=as.character(crqa_results$filename)
+crqa_results = crqa_results %>% group_by(filename) %>% mutate(Condition = gsub('.{4}$', '', strsplit(filename, "_")[[1]][4]))
 
-Model18=lmer(L~Condition +(1|Study), DataResp)
-summary(Model18)
+# To subset data into heart rate and respiration data
+CRQAresults_Resp=subset(crqa_results[crqa_results$type == "Resp",])
+CRQAresults_HR=subset(crqa_results[crqa_results$type == "HR",])
+
+Model_RR_HR=lmer(RR ~ Condition + (1|Study) + (1|Group) , CRQAresults_HR)
+summary(Model_RR_HR)
+
+Model_L_resp=lmer(L ~ Condition + (1|Study) + (1|Group) , CRQAresults_Resp)
+summary(Model_L_resp)
+
+Model_L_HR=lmer(L ~ Condition + (1|Study) + (1|Group) , CRQAresults_HR)
+summary(Model_L_HR)
+
+Model_ENTR_resp=lmer(ENTR ~ Condition + (1|Study) + (1|Group) , CRQAresults_Resp)
+summary(Model_ENTR_resp)
+
+Model_ENTR_HR=lmer(ENTR ~ Condition + (1|Study) + (1|Group) , CRQAresults_HR)
+summary(Model_ENTR_HR)
 ```
 
 ### Effects of respiration coordination on heart rate coordination
