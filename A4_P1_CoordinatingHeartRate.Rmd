@@ -710,6 +710,9 @@ CRQAresults_HR=subset(crqa_results[crqa_results$type == "HR",])
 Model_RR_HR=lmer(RR ~ Condition + (1|Study) + (1|Group) , CRQAresults_HR)
 summary(Model_RR_HR)
 
+Model_RR_resp=lmer(RR ~ Condition + (1|Study) + (1|Group) , CRQAresults_Resp)
+summary(Model_RR_resp)
+
 Model_L_resp=lmer(L ~ Condition + (1|Study) + (1|Group) , CRQAresults_Resp)
 summary(Model_L_resp)
 
